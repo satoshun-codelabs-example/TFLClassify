@@ -39,10 +39,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.RecyclerView
+import org.tensorflow.lite.examples.classification.ml.Model
 import org.tensorflow.lite.examples.classification.ui.RecognitionAdapter
 import org.tensorflow.lite.examples.classification.util.YuvToRgbConverter
 import org.tensorflow.lite.examples.classification.viewmodel.Recognition
 import org.tensorflow.lite.examples.classification.viewmodel.RecognitionListViewModel
+import org.tensorflow.lite.support.image.TensorImage
 import java.util.concurrent.Executors
 import kotlin.random.Random
 
@@ -208,23 +210,20 @@ class MainActivity : AppCompatActivity() {
 
         // TODO 6. Optional GPU acceleration
 
-        // TODO 1: Add class variable TensorFlow Lite Model
+        private val flowerModel = Model.newInstance(ctx)
 
         override fun analyze(imageProxy: ImageProxy) {
-
             val items = mutableListOf<Recognition>()
 
-            // TODO 2: Convert Image to Bitmap then to TensorImage
-
-            // TODO 3: Process the image using the trained model, sort and pick out the top results
-
-            // TODO 4: Converting the top probability items into a list of recognitions
-
-            // START - Placeholder code at the start of the codelab. Comment this block of code out.
-            for (i in 0..MAX_RESULT_DISPLAY-1){
-                items.add(Recognition("Fake label $i", Random.nextFloat()))
+            val tfImage = TensorImage.fromBitmap(toBitmap(imageProxy))
+            val outputs = flowerModel.process(tfImage)
+              .probabilityAsCategoryList.apply {
+                  sortByDescending { it.score } // Sort with highest confidence first
+              }
+              .take(MAX_RESULT_DISPLAY)
+            for (output in outputs) {
+                items.add(Recognition(output.label, output.score))
             }
-            // END - Placeholder code at the start of the codelab. Comment this block of code out.
 
             // Return the result
             listener(items.toList())
